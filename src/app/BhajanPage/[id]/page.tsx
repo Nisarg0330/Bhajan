@@ -1,7 +1,9 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { bhajanList } from "@/lib/data";
+import Navbar from "@/components/navbar";
 
 type Bhajan = {
   id: number;
@@ -10,56 +12,55 @@ type Bhajan = {
 };
 
 const BhajanPage = () => {
-  const [bhajanTexts, setBhajanTexts] = useState<Record<number, string>>({});
-  const [loading, setLoading] = useState(true);
+  const { id } = useParams() as { id: string }; // Get the `id` from the URL
+  const [bhajanContent, setBhajanContent] = useState<string>("Loading...");
+  const [bhajanTitle, setBhajanTitle] = useState<string>("");
 
   useEffect(() => {
-    const fetchAllBhajans = async () => {
-      const texts: Record<number, string> = {};
-      await Promise.all(
-        bhajanList.map(async (bhajan) => {
-          try {
-            const res = await fetch(bhajan.src);
-            if (!res.ok) {
-              throw new Error(`Failed to fetch bhajan with id ${bhajan.id}`);
-            }
-            const text = await res.text();
-            texts[bhajan.id] = text;
-          } catch (error) {
-            console.error(`Error fetching bhajan ${bhajan.id}:`, error);
-            texts[bhajan.id] = "Error loading bhajan.";
-          }
-        })
-      );
-      setBhajanTexts(texts);
-      setLoading(false);
+    const fetchBhajan = async () => {
+      const bhajan = bhajanList.find((b) => b.id === parseInt(id)); // Find the bhajan with the matching `id`
+
+      if (!bhajan) {
+        setBhajanContent("Bhajan not found.");
+        return;
+      }
+
+      setBhajanTitle(bhajan.title); // Set the title of the bhajan
+
+      try {
+        const res = await fetch(bhajan.src);
+        if (!res.ok) {
+          throw new Error("Failed to fetch bhajan.");
+        }
+        const text = await res.text();
+        setBhajanContent(text);
+      } catch (error) {
+        setBhajanContent("Failed to load bhajan.");
+      }
     };
 
-    fetchAllBhajans();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-repeat bg-center" style={{ backgroundImage: "url('/backgroundLight.png')" }}>
-        <div className="text-2xl font-bold text-gray-700">Loading...</div>
-      </div>
-    );
-  }
+    fetchBhajan();
+  }, [id]);
 
   return (
-    <div className="flex justify-center items-center h-screen bg-repeat bg-center" style={{ backgroundImage: "url('/backgroundLight.png')" }}>
-      <div className="w-[95%] h-[90%] bg-white rounded-3xl shadow-lg flex flex-col justify-center items-center overflow-y-auto p-4">
-        <div className="text-2xl font-bold text-center text-gray-700 gap-6 flex flex-col justify-center items-center">
-          {bhajanList.map((bhajan: Bhajan) => (
-            <div key={bhajan.id} className="text-center max-w-3xl">
-              <h2 className="mb-2 font-Noto_Sans_Gujarati">{bhajan.title}</h2>
-              <pre className="font-Noto_Sans_Gujarati whitespace-pre-wrap">
-                {bhajanTexts[bhajan.id] || "Error loading bhajan."}
-              </pre>
-            </div>
-          ))}
+    <div
+      className="flex justify-center items-center h-screen bg-cover bg-center"
+      style={{ backgroundImage: "url('/bg.jpg')" }}
+    >
+      <div className="w-[95%] h-[90%] bg-white/5 rounded-3xl backdrop-blur-sm shadow-xl overflow-auto p-6">
+        <div className="text-2xl font-bold text-center text-gray-700 mb-4">
+          <h2 className="text-2xl font-semibold text-[#4B2E2E] mb-2 mt-4">
+            {bhajanTitle}
+          </h2>
+        </div>
+
+        <div className="flex flex-col gap-8 text-[#A0522D] text-sm sm:text-base md:text-center lg:text-lg">
+          <pre className="whitespace-pre-line p-4 rounded text-center text-gray-600 font-Noto_Sans_Gujarati font-semibold ">
+            {bhajanContent}
+          </pre>
         </div>
       </div>
+      <Navbar />
     </div>
   );
 };
